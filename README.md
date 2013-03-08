@@ -2,9 +2,7 @@ Container Queries
 =================
 
 *This is in early development, syntax and other aspects may change.*
-You can watch the [video introduction][ContainerQueriesVideo] recorded March 8, 2013.
-
-[ContainerQueriesVideo]: "http://www.youtube.com/watch?v=RuEM93Ff50E"
+You can watch the [video introduction](http://www.youtube.com/watch?v=RuEM93Ff50E) recorded March 8, 2013.
 
 What are container queries?
 ---------------------------
