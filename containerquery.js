@@ -6,7 +6,7 @@ if( !Date.now ) { Date.now = function now() { return +(new Date); }; }
 	// VARIABLE DECLARATIONS
 
 	var testDiv, documentPixelsPerEm, lastCompleteTestRequest = Date.now() - 1000;
-	var nodesWeChanged = [], rules = {}, loadedSheets = {};
+	var loadLoop, nodesWeChanged = [], rules = {}, loadedSheets = {};
 	
 	// PUBLIC API
 
@@ -37,6 +37,7 @@ if( !Date.now ) { Date.now = function now() { return +(new Date); }; }
 		for( i = 0, _ref = stylesheets.length; i < _ref; i++ ) {
 			if( stylesheets[ i ].href ) loadStylesheet( stylesheets[ i ] );
 		}
+		loadLoop = setInterval( runAllTests, containerqueries.testBuffer );
 	}
 
 	function loadStylesheet( stylesheet ) {
@@ -155,6 +156,9 @@ if( !Date.now ) { Date.now = function now() { return +(new Date); }; }
 			runAllTests();
 			zoomPoll();
 		}
+		setTimeout( function() {
+			clearInterval( loadLoop );
+		}, containerqueries.testBuffer * 2 );
 		addEvent( window, 'resize', runAllTests );
 	}
 
