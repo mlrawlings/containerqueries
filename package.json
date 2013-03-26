@@ -1,8 +1,0 @@
-{
-  "version": "0.0.1",
-  "name": "containerqueries",
-  "dependencies": {
-    "stylus": "~0.30.1",
-    "node-static": "~0.6.7"
-  }
-}

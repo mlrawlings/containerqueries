@@ -48,12 +48,9 @@ Sadly, this is true.  However I am working on a [specification](specification.md
 
 How to use the polyfill
 -----------------------
-**The polyfill is still under heavy development. Please check back soon, or contribute.**
+Simply add a `<script>` reference to `containerqueries.js` or `containerqueries.min.js` after all of your stylesheets.  
 
-It requires pre-processing your style sheets to generate javascript rules that are applied upon page load, window resize, dom changes, and browser zoom.  If you're already using a stylesheet preprocessor (less/sass/stylus) you can hook into the rendering process to provide container queries with minimal change to your existing code.
-
-To Do
------
-- [ ] Implement client side parsing
-- [ ] Finalize syntax
-- [ ] Complete formal specification of behavior
+Limitations
+-----------
+- Must use http/https protocols, will not work on file protocol due to the XHR request.
+- The polyfill will only work for external stylesheets, and does not currently play nice if you are disabling or deleting stylesheets. 

@@ -3,15 +3,17 @@ if( !Date.now ) { Date.now = function now() { return +(new Date); }; }
 (function( window, document ) {
 	var containerqueries = window.containerqueries = {};
 	
+	// VARIABLE DECLARATIONS
+
 	var testDiv, documentPixelsPerEm, lastCompleteTestRequest = Date.now() - 1000;
-	var nodesWeChanged = [], rules = {};
+	var nodesWeChanged = [], rules = {}, loadedSheets = {};
 	
+	// PUBLIC API
+
 	containerqueries.load = function( data ) {
-		for( var i = 0, ref = data.length; i < ref; i++ ) {
-			var selector = data[ i ].selector;
-			var selectorRules = rules[ selector ] = rules[ selector ] || [];
-			selectorRules.push( { className: data[ i ].className, test: data[ i ].test } );
-		}
+		var selector = data.selector;
+		rules[ selector ] = rules[ selector ] || [];
+		rules[ selector ].push( { className: data.className, test: data.test } );
 	};
 
 	containerqueries.zoomPollTimeout = 300;
@@ -21,19 +23,127 @@ if( !Date.now ) { Date.now = function now() { return +(new Date); }; }
 	containerqueries.runPeriodically = !canWatchDOM();
 	containerqueries.runPeriodicallyTimeout = 500;
 
-	containerqueries.runAllTests = runAllTests;
-	containerqueries.runTestsOnElement = runTestsOnElement;
-	containerqueries.runTestsOnElementSubtree = runTestsOnElementSubtree;
-
 	init();
 
+	// STYLESHEET LOADER
+
 	function init() {
+		var i, _ref, stylesheets = qsa('link[rel=stylesheet]');
 		if( document.addEventListener ) {
 			addEvent( document, 'DOMContentLoaded', contentReady );
 		} else if( document.attachEvent ) { // Old IE
 			addEvent( document, 'readystatechange', contentReady );
 		}
+		for( i = 0, _ref = stylesheets.length; i < _ref; i++ ) {
+			if( stylesheets[ i ].href ) loadStylesheet( stylesheets[ i ] );
+		}
 	}
+
+	function loadStylesheet( stylesheet ) {
+		var href = stylesheet.href;
+		if( !loadedSheets[ href ] ) {
+			loadedSheets[ href ] = {
+				original: stylesheet
+			};
+			loadXHR( href, function( xhr ) {
+				var rules = createContainerRules( xhr.responseText );
+				var style = document.createElement('style');
+				style.setAttribute( 'type', 'text/css' );
+				if( style.styleSheet ) style.styleSheet.cssText = rules; //oldIE
+	     		else style.appendChild( document.createTextNode( rules ) );
+	     		document.getElementsByTagName( 'head' )[ 0 ].appendChild( style );
+	     		loadedSheets[ href ].additional = style.sheet;
+			} );
+		}
+	}
+
+	function createContainerRules( cssText ) {
+		var i, _ref, rule, newRules = '', rules = cssText.match( /[^}]+@container[^}]+\}/g );
+		for( i = 0, _ref = rules.length; i < _ref; ++i ) {
+			rule = rules[ i ];
+			newRules += convertAndWatch( rule );
+		}
+		return newRules;
+	}
+
+	function convertAndWatch( rule ) {
+		var i, _ref, data, query, selector, tester, className, selectors = rule.match(/[^,]+@container[^@{,]+/g);
+		for( i = 0, _ref = selectors.length; i < _ref; ++i ) {
+			selector = selectors[ i ];
+			query = getQuery( selector );
+			data = {
+				selector: selector.substring( 0, selector.indexOf( '@container' ) ).replace( /^\s*|\s*$/g, '' ),
+				className: createClassNameFromQuery( query ),
+				test: createTestFunction( query )
+			};
+			containerqueries.load( data );
+			rule = rule.replace( /\s*@container\s*/, '.' ).replace( query, data.className );
+		}
+		return rule;
+	}
+
+	function createClassNameFromQuery( query ) {
+		return '_cq-'+query.replace( /,/g, ' or ' ).replace( /(\s|\:|\(|\))+/g, '-' ).replace( /^[\s\-]+|[\s\-]+$/g, '' )
+			.replace(/(max|min)-(?:aspect-)?(\w)\w+/g, '$1$2');
+	}
+
+	function createTestFunction( query ) {
+		return new Function( 'container', 'return ' + queryToBooleanStatement( query ) );
+	}
+
+	function queryToBooleanStatement( query ) {
+		var pattern = '\\(\\s*(max|min)-(?:aspect-)?(width|height|ratio)\\s*:\\s*([\\d\\.]+)(px|em)\\s*\\)';
+		return '('+query.replace( RegExp( pattern , 'g' ), function( substring ) {
+			var matches = substring.match( RegExp( pattern ) );
+			return 'container.' + matches[2] + '.' + matches[4] + ( 
+				matches[1] == 'max' ? '<=' : '>=' 
+			) + matches[3];
+		} ).replace( /\s*and\s*/g, '&&' ).replace( /\s*(,|or)\s*/g, ')||(' ).replace( /^\s+|\s+$/g, '' ) + ')';
+	}
+
+	function getQuery( string ) {
+		var first, current, ended = false;
+		var string = string; var lastRelevant = 0;
+		first = current = string.indexOf( '(', string.indexOf( '@container' ) );
+		while( !ended && current < string.length ) {
+			var character = string[ current ];
+			if( character === '(' ) {
+				lastRelevant = 0;
+				current = string.indexOf( ')', current ) + 1;
+			} else if( character.toLowerCase() === 'a' ) {
+				if( current + 2 < string.length && string[ current+1 ].toLowerCase() === 'n' && string[ current+2 ].toLowerCase() === 'd' ) {
+					lastRelevant = 0;
+					current += 3;
+				} else {
+					ended = true;
+				}
+			} else if( character === ',' ) {
+				lastRelevant = current;
+				current++;
+			} else if( /\s/.test( character ) ) {
+				lastRelevant = current;
+				do {
+					character = string[ ++current ];
+				} while( /\s/.test( character ) );
+			} else {
+				ended = true;
+			}
+		}
+		return string.substring( first, lastRelevant || current );
+	}
+
+	function loadXHR(url, callback) {  
+		var xhr = new XMLHttpRequest();  
+		xhr.onreadystatechange = function () {  
+			if( xhr.readyState === 4 && xhr.status === 200 ) {  
+				callback( xhr );  
+			}             
+		}
+		xhr.open('GET', url, true);  
+		xhr.send('');  
+	}  
+
+	// CLASS APPLICATION
 
 	function contentReady() {
 		if( containerqueries.watchDOM ) { 
@@ -152,6 +262,8 @@ if( !Date.now ) { Date.now = function now() { return +(new Date); }; }
         return pixelEquivalent;
 	}
 
+	// DOM WATCHING
+
 	function DOMWatch() {
 		var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
 		if( MutationObserver ) {
@@ -245,6 +357,7 @@ if( !Date.now ) { Date.now = function now() { return +(new Date); }; }
 	}
 
 	function qsa( selector, element ) {
+		var element = element || document;
 		return element.querySelectorAll ? element.querySelectorAll( selector ) : $( element ).find( selector );
 	}
 

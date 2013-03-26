@@ -23,11 +23,7 @@ simple_selector
   ;
 
 container
-  : CONTAINER_SYM S* container_query_list
-  ;
-
-container_query_list
-  : S* [container_query [ ',' S* container_query ]* ]?
+  : CONTAINER_SYM S* container_query
   ;
 
 container_query
