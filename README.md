@@ -46,7 +46,7 @@ Sadly, this is true.  However I am working on a [specification](specification.md
 
 How to use the polyfill
 -----------------------
-Simply add a `<script>` reference to `containerqueries.js` or `containerqueries.min.js` after all of your stylesheets.  
+Simply add a `<script>` reference to `containerqueries.js` or `containerqueries.min.js` after all of your stylesheets.  View the [Demo](http://mlrawlings.github.com/containerqueries/).
 
 Limitations
 -----------
